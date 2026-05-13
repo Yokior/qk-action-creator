@@ -19,7 +19,7 @@
     },
     "encoding": {
       "VarKey": "",
-      "Value": "Encoding.UTF8.WebName"
+      "Value": "utf-8"
     },
     "waitMs": {
       "VarKey": "",
@@ -46,7 +46,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | format | CommonStrings.GetClipboardTextStep_TxtFormatParam_Name | Enum | 否 | UnicodeText | Custom=自定义格式名 | CommonStrings.GetClipboardTextStep_TxtFormatParam_Desc |
 | customFormat | 格式名称 | Text | 否 |  | 仅用于 Custom | 自定义的剪贴板格式名，请和实际剪贴板格式名一致。只支持实际为文本类型的内容。 |
-| encoding | 文本编码 | Enum | 是 | Encoding.UTF8.WebName | 仅用于 Custom | 读取自定义格式时候使用的编码类型 |
+| encoding | 文本编码 | Enum | 是 | utf-8 | 仅用于 Custom | 读取自定义格式时候使用的编码类型 |
 | waitMs | 重试时间 | Integer | 否 | 400 |  | 每10ms重试一次，直到获取到文本。为0时不重试。 |
 | stopIfFail | CommonStrings.GetClipboardTextStep_StopIfEmptyParam_Name | Boolean | 否 | true |  | CommonStrings.GetClipboardTextStep_StopIfEmptyParam_Desc |
 

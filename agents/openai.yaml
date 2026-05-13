@@ -1,4 +1,4 @@
 interface:
   display_name: "QK Action Creator"
-  short_description: "生成或修改 Quicker 动作 JSON 并注入"
-  default_prompt: "Use $qk-action-creator to generate or modify a Quicker action JSON, then run the injector action directly in the current environment and adjust by returned result."
+  short_description: "生成或修改 Quicker 动作 JSON，必要时查官方文档、单题澄清并注入"
+  default_prompt: "Use $qk-action-creator to explain, generate, or modify a Quicker action JSON. When requirements are underspecified but implementation is expected, ask one numbered clarification question at a time with lettered options and a recommended option. If local references are insufficient, open the official Quicker help URL recorded in the relevant document before asking the user. Then continue to build or update the action and run the injector."

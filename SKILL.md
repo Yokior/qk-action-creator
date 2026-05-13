@@ -1,6 +1,6 @@
 ---
 name: qk-action-creator
-description: Generate or modify Quicker action JSON files from user requirements, using bundled step definition markdown converted from Quicker action docs. Use when Codex needs to create a new action JSON, revise an existing action JSON, or directly run a Quicker injector action from the current environment to inject the JSON into another action.
+description: Generate or modify Quicker action JSON files from user requirements, using bundled step definition markdown converted from Quicker action docs. Use when Codex needs to create a new action JSON, revise an existing action JSON, explain which Quicker built-in steps fit a requirement, or directly run a Quicker injector action from the current environment to inject the JSON into another action. When requirements are underspecified but code generation is the goal, ask numbered clarification questions one at a time with lettered options and a recommended answer. If local references are insufficient, consult the official Quicker help URL recorded in the relevant document before asking the user.
 ---
 
 # QK Action Creator
@@ -9,22 +9,52 @@ description: Generate or modify Quicker action JSON files from user requirements
 
 ## 工作流
 
-1. 先判断任务是“新建动作 JSON”还是“修改已有 JSON”。
-2. 先判断需求是在问“步骤模块怎么用”，还是已经进入“拼动作 JSON”阶段。
-3. 若需求涉及模块语义、变量类型、参数计算、插值或表达式，先读取 `references/basic_docs/` 下与问题直接相关的基础文档。
-4. 再读取 `references/step_docs/` 下与需求直接相关的步骤文档。
-5. 若需求涉及动作右键菜单、动作自身图标、最小版本、触发后不关闭面板等动作级属性，先读取 `references/basic_docs/动作右键菜单与动作元数据.md`。
-6. 若需求涉及 Quicker 内置矢量图、菜单项图标、按钮图标、子程序图标，先读取 `references/basic_docs/Quicker内置矢量图.md`。
-7. 先用 Quicker 内置模块拆解需求，优先选最直接的现成步骤，不要一上来写脚本。
-8. 若只是简单赋值、简单计算、条件值选择、成员访问，优先用表达式；若只是拼文本，优先用 `$$` 文本插值。
-9. 只按技能目录内文档里已经存在且已被本 skill 校正过的模块键、输入参数、输出参数拼装 JSON，不猜字段。
-10. 若需求涉及动作级持久化状态数据，默认优先使用 Quicker 提供的 `状态存取` 模块，不要先写脚本自管读写。
-11. 只有当内置模块、表达式、文本插值组合后仍然难以实现，或实现会明显过度复杂时，才使用 `运行C#代码`。
-12. 若动作开始变长，主动判断是否该拆成步骤组或子程序，不要把所有逻辑堆进主流程。
-13. 如需修改已有 JSON，先保留原结构，只改与需求直接相关的部分。
-14. 把结果写到明确的 JSON 文件。
-15. 生成或修改 JSON 后，自动执行一次“注入动作”；执行前先读取 `config.json` 中的“注入器”动作 ID，若缺失再询问用户并保存。
-16. 根据注入返回结果判断是否完成；若失败，按错误内容继续修改 JSON 后重试。
+1. 先判断任务是“解释模块/设计方案”“新建动作 JSON”还是“修改已有 JSON”。
+2. 先判断当前信息是否足以直接选模块、定变量、定关键参数。
+3. 若只是缺少不会影响实现路径的细枝末节，不要停下来盘问，先继续设计或生成。
+4. 若缺少的信息会直接影响模块选择、变量结构、目标动作、动作级元数据或保存/注入链路，先提问再继续。
+5. 提问时一次只问一个关键问题，并按“Q 序号 + 选项 + 推荐答案”的格式输出。
+6. 若某个问题可以通过读取代码库、现有 JSON、skill 配置或参考文档自行确认，就先查，不要先问用户。
+7. 若需求涉及模块语义、变量类型、参数计算、插值或表达式，先读取 `references/basic_docs/` 下与问题直接相关的基础文档。
+8. 再读取 `references/step_docs/` 下与需求直接相关的步骤文档。
+9. 若本地参考文档未能确认关键字段、参数取值、控制参数行为、线程要求或模块边界，立即访问对应文档里记录的官方帮助 URL。
+10. 若官方文档已经明确，按官方文档修正理解与 JSON；若官方文档仍未明确，停止猜测并询问用户。
+11. 若需求涉及动作右键菜单、动作自身图标、最小版本、触发后不关闭面板等动作级属性，先读取 `references/basic_docs/动作右键菜单与动作元数据.md`。
+12. 若需求涉及 Quicker 内置矢量图、菜单项图标、按钮图标、子程序图标，先读取 `references/basic_docs/Quicker内置矢量图.md`。
+13. 先用 Quicker 内置模块拆解需求，优先选最直接的现成步骤，不要一上来写脚本。
+14. 若只是简单赋值、简单计算、条件值选择、成员访问，优先用表达式；若只是拼文本，优先用 `$$` 文本插值。
+15. 只按技能目录内文档里已经存在且已被本 skill 校正过的模块键、输入参数、输出参数拼装 JSON，不猜字段。
+16. 若需求涉及动作级持久化状态数据，默认优先使用 Quicker 提供的 `状态存取` 模块，不要先写脚本自管读写。
+17. 只有当内置模块、表达式、文本插值组合后仍然难以实现，或实现会明显过度复杂时，才使用 `运行C#代码`。
+18. 若动作开始变长，主动判断是否该拆成步骤组或子程序，不要把所有逻辑堆进主流程。
+19. 如需修改已有 JSON，先保留原结构，只改与需求直接相关的部分。
+20. 把结果写到明确的 JSON 文件。
+21. 生成或修改 JSON 后，自动执行一次“注入动作”；执行前先读取 `config.json` 中的“注入器”动作 ID，若缺失再询问用户并保存。
+22. 根据注入返回结果判断是否完成；若失败，先回查相关步骤文档和其官方帮助 URL，再按错误内容继续修改 JSON 后重试。
+
+## 澄清提问格式
+
+- 只有在信息缺失会改变实现路径时，才发起澄清提问。
+- 一次只问一个问题，不并发抛出多个问题。
+- 问题编号格式固定为 `Q1`、`Q2`、`Q3`，按会话内顺序递增。
+- 每个问题给出若干互斥选项，格式固定为 `A`、`B`、`C`、`D`、`E`。
+- 必须给出单一推荐选项，写成 `推荐：B`。
+- 推荐后必须紧跟一句理由，说明为什么这个选项最符合当前需求与本 skill 的实现优先级。
+- 若用户的需求明显适合成熟内置模块，推荐项必须优先落在内置模块方案，不要把脚本方案和内置方案并列推荐。
+- 若用户选了非推荐项，只要该项可实现，就按其选择继续，不要反复拉回推荐项。
+- 若不存在真实可选分支，不要硬造多选题，直接陈述结论或继续执行。
+- 若问题本质上是在确认一个具体值，例如动作 ID、变量名、现有 JSON 路径，不要伪装成方案选择题，直接询问该值。
+- 问题输出格式如下：
+
+```text
+Q1 这一步的结果要存到哪里？
+A. 只在当前流程里临时使用
+B. 写入动作状态，供下次运行继续读取
+C. 写入云状态，在多设备之间共享
+
+推荐：B
+理由：需求包含“下次运行继续使用”，按本 skill 规则应优先使用本地状态存取，而不是脚本或云状态。
+```
 
 ## 实现优先级
 
@@ -41,6 +71,7 @@ description: Generate or modify Quicker action JSON files from user requirements
 - 能用一个现成步骤加 `$=` 或 `$$` 实现，就不要改成多步脚本。
 - 简单计算优先用 `sys:assign` 或其他支持文本输入的内置步骤配合 `$=`。
 - 简单拼文本优先在文本参数里直接写 `$$`，不要先上 `sys:csscript`。
+- 这个 skill 默认按“没有源码、没有真实案例、需要独立完成动作”来工作，不因为缺少案例就猜字段或发明写法。
 - 需求如果是“存一份动作自己的状态数据，后面再次运行还要读出来”，默认优先用 `sys:stateStorage`。
 - 只有在需求明确要求跨设备、跨账号共享状态时，才考虑 `云状态存取`，不要把普通本地状态默认做成云状态。
 - 需求如果是“步骤里弹出菜单”，优先用 `sys:showmenu` 或相关步骤能力。
@@ -55,6 +86,7 @@ description: Generate or modify Quicker action JSON files from user requirements
 - 同一阶段里只是为了可读性分块、批量折叠、整体启停，优先使用步骤组。
 - 只有涉及 Quicker 内部服务、复杂对象构造、现成模块明显缺失、表达式难以维护时，才用 `sys:csscript`。
 - 决定使用 `sys:csscript` 时，必须先能说明“为什么内置模块 + 表达式/插值不适合”。
+- 对模块行为、参数格式、控制参数可见性、枚举取值存在疑点时，先查当前文档中的帮助 URL；官方文档未明确时再询问用户。
 
 ## 生成规则
 
@@ -148,11 +180,17 @@ description: Generate or modify Quicker action JSON files from user requirements
   - 输入参数表
   - 输出参数表
   - 控制参数与可见性
+- 本 skill 默认假定当前任务拿不到源码，也拿不到真实动作案例，因此参考资料链路必须稳定：
+  - 先查本 skill 自带 `references/`
+  - 再查对应文档中的官方帮助 URL
+  - 官方文档仍未明确时，再询问用户
 - 需要跨文件组合动作时，只读取必要文档，不要整批加载全部文档。
 - 如果只是要解释某个基础概念，不要急着生成 JSON。
 - 如果能从已有步骤文档直接选出模块，就先选模块，再决定参数里是否用 `$=` 或 `$$`。
 - 若一个需求只是简单计算或简单文本拼接，不要跳到 `运行C#代码.md`。
 - 若某个步骤文档中出现类型、默认值、控制参数、可见性互相冲突，先以该文档里的“要点”“样例”“人工补充说明”为准。
+- 若本地文档缺少某个关键字段、关键参数、默认值、枚举取值或行为说明，必须访问该文档顶部 `帮助` 一行里的官方 URL。
+- 若官方文档与本地人工校正规则冲突，先以本 skill 已人工校正且已验证可用的规则为准；若仍无法判断，再询问用户。
 - 如果要新增顶层变量，而步骤文档没有说明变量类型，就读取 `references/basic_docs/顶层Variables结构.md` 中已经固化的离线类型表和最小变量结构；文档未覆盖时再明确告知无法确认，不猜字段。
 - 如果需求涉及动作右键菜单或动作自身图标，先读：
   - `references/basic_docs/动作右键菜单与动作元数据.md`
@@ -240,6 +278,8 @@ cmd.exe /c 'C:\Program Files\Quicker\QuickerStarter.exe' -c runaction:注入器�
   - 步骤参数错误
   - 注入动作内部逻辑错误
   - 目标动作 ID 或保存链路错误
+- 若错误指向某个具体步骤或参数，而本地文档不足以解释，必须回查该步骤文档的官方帮助 URL，再决定如何修改。
+- 若回查官方文档后仍无法确认问题根因，不继续猜测，直接询问用户。
 
 ## 输出要求
 
