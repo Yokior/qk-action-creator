@@ -23,14 +23,9 @@ cmd.exe /c 'C:\Program Files\Quicker\QuickerStarter.exe' -c runaction:c2b4ebf9-1
 
 4. 动作内配套约定
 - `actionId`
-  - 目标被改写动作的 ID。
+  - 目标被改写动作的 ID。（由用户提前手动设置，未设置会报错 targetActionId 为空）
 - `quicker_in_param`
-  - JSON 文件路径。
-- 运行 C# 脚本负责：
-  - 读取该路径对应文件内容
-  - 反序列化为 `XAction`
-  - 写回目标动作
-  - 调用 `AppState.AppServer.SaveProfile(profile, true)` 保存
+  - JSON 文件路径。（只需要关注这个）
 
 5. 返回结果
 - 成功时返回：`ok`
