@@ -1,6 +1,8 @@
-# qk-action-creator
+# qk-action-creator SKILL
 
-用于让 AI 根据需求生成或修改 Quicker 动作 JSON，并通过“注入器”动作把流程定义写回 Quicker 目标动作。
+用于让 AI 根据需求生成或修改 Quicker 动作 JSON 的Agent SKILL，并通过“注入器”动作把流程定义写回 Quicker 目标动作。
+
+需要配合 Quicker 动作 https://getquicker.net/Sharedaction?code=86296ebf-98b9-49c4-7b71-08deb0ad6916 使用
 
 ## 项目用途
 
