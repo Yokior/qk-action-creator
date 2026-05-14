@@ -27,10 +27,11 @@ description: Generate or modify Quicker action JSON files from user requirements
 16. 若需求涉及动作级持久化状态数据，默认优先使用 Quicker 提供的 `状态存取` 模块，不要先写脚本自管读写。
 17. 只有当内置模块、表达式、文本插值组合后仍然难以实现，或实现会明显过度复杂时，才使用 `运行C#代码`。
 18. 若动作开始变长，主动判断是否该拆成步骤组或子程序，不要把所有逻辑堆进主流程。
-19. 如需修改已有 JSON，先保留原结构，只改与需求直接相关的部分。
-20. 把结果写到明确的 JSON 文件。
-21. 生成或修改 JSON 后，自动执行一次“注入动作”；执行前先读取 `config.json` 中的“注入器”动作 ID，若缺失再询问用户并保存。
-22. 根据注入返回结果判断是否完成；若失败，先回查相关步骤文档和其官方帮助 URL，再按错误内容继续修改 JSON 后重试。
+19. 如需修改已有 JSON，先对目标动作执行一次“同步”，把最新动作定义拉回本地 JSON，再基于该文件修改。
+20. 同步完成后，先保留原结构，只改与需求直接相关的部分。
+21. 把结果写到明确的 JSON 文件。
+22. 生成或修改 JSON 后，自动执行一次“注入动作”；执行前先读取 `config.json` 中的“注入器”动作 ID，若缺失再询问用户并保存。
+23. 根据注入返回结果判断是否完成；若失败，先回查相关步骤文档和其官方帮助 URL，再按错误内容继续修改 JSON 后重试。
 
 ## 澄清提问格式
 
@@ -74,6 +75,11 @@ C. 写入云状态，在多设备之间共享
 - 这个 skill 默认按“没有源码、没有真实案例、需要独立完成动作”来工作，不因为缺少案例就猜字段或发明写法。
 - 需求如果是“存一份动作自己的状态数据，后面再次运行还要读出来”，默认优先用 `sys:stateStorage`。
 - 只有在需求明确要求跨设备、跨账号共享状态时，才考虑 `云状态存取`，不要把普通本地状态默认做成云状态。
+- 需求如果是“维护一组可反复复用的配置项”，默认优先用：
+  - `sys:form`
+  - `sys:stateStorage`
+  - `sys:simpleIf` / `sys:if`
+  - `sys:stop`
 - 需求如果是“步骤里弹出菜单”，优先用 `sys:showmenu` 或相关步骤能力。
 - 需求如果是 `sys:custompanel`，默认优先用 `operationData` 的 JSON 形式描述操作项，不默认使用文本简写。
 - 只有当 `defaultOperation` 的具体写法已经被本 skill 文档明确覆盖时，才允许使用 `"[图标]标题|data"` 这类简写格式。
@@ -81,9 +87,23 @@ C. 写入云状态，在多设备之间共享
 - 用户如果要新做动作右键菜单，必须先提示用户在 Quicker 里手工创建右键菜单，再根据用户已创建的右键菜单继续后续开发。
 - 在用户尚未手工创建前，不要生成动作右键菜单 JSON，不要设计 `ContextMenuData` 文本，不要假设菜单 DSL。
 - 需求如果是“使用 Quicker 内置矢量图”，默认优先用 `fa:` 字符串，不直接生成 WPF 几何对象。
+- 当前工作区样例与本 skill 约定都采用 `quicker_in_param` 作为动作入口参数。若同一动作既支持普通点击又支持菜单入口，主流程默认优先先判断 `quicker_in_param`。
+- 需求如果是“设置参数”“管理配置”“维护数据”这类入口分支，命中后默认应：
+  - 进入专用分支
+  - 完成保存或维护动作
+  - 视情况给 `sys:notify`
+  - 紧接 `sys:stop`
+  - 不继续执行主功能
+- 多字段表单若只是固定少量变量，优先 `operation=variables` 或 `dict`。
+- 多字段表单若字段结构依赖词典、显示条件、动态选项或分组复用，优先 `operation=dict_dynamic`。
+- `dict_dynamic` 离线生成时，默认优先写 `dynamicFormForDictDef` 的 JSON `Fields` 结构；只有在当前文档已明确覆盖相关对象模型时，才使用返回 `FormField` 列表的表达式写法。
 - 主流程负责编排，重复逻辑、阶段逻辑、分支大块逻辑优先拆到步骤组或子程序。
 - 同一段逻辑如果会被调用两次及以上，优先抽成子程序。
 - 同一阶段里只是为了可读性分块、批量折叠、整体启停，优先使用步骤组。
+- 流程控制优先使用卫语句或提前返回，减少多级嵌套。
+- 仅有 `if` 时优先 `sys:simpleIf`；同时存在 `if` 和 `else` 时才使用 `sys:if`。
+- 不要生成空的 `ElseSteps`。
+- 对复杂动作，关键业务阶段优先加 `sys:comment` 注释模块；不要机械地给每一步都单独加注释。
 - 只有涉及 Quicker 内部服务、复杂对象构造、现成模块明显缺失、表达式难以维护时，才用 `sys:csscript`。
 - 决定使用 `sys:csscript` 时，必须先能说明“为什么内置模块 + 表达式/插值不适合”。
 - 对模块行为、参数格式、控制参数可见性、枚举取值存在疑点时，先查当前文档中的帮助 URL；官方文档未明确时再询问用户。
@@ -109,6 +129,13 @@ C. 写入云状态，在多设备之间共享
 - 简单变量改写优先使用 `sys:assign`，不要为了 `+1`、拼提示词、取成员而默认改用 `sys:csscript`。
 - 若需求只涉及简单计算、简单判断、简单文本拼接，默认不生成任何脚本步骤。
 - 若需求只是在动作内保存或读取少量键值状态，默认不生成任何脚本步骤，直接使用 `sys:stateStorage`。
+- 配置型动作若需要“下次继续沿用上次参数”，默认优先采用以下主结构：
+  - 默认配置初始化
+  - 读取动作状态
+  - 若状态非空则载入配置
+  - 判断入口参数
+  - 设置分支保存配置并停止
+  - 普通分支继续执行主功能
 - 若步骤文档之间存在冲突，优先采用本 skill 中已经人工校正过的样例与规则，不沿用明显失真的自动转存结果。
 - 动作一旦出现多个明显阶段，优先用 `sys:group` 分段，并写清楚组的业务语义。
 - 动作一旦出现可复用流程，优先在顶层 `SubPrograms` 中定义子程序，再在主流程用 `sys:subprogram` 调用。
@@ -116,6 +143,8 @@ C. 写入云状态，在多设备之间共享
 - 步骤内按钮、菜单项、操作项若支持图标文本，也优先用 `fa:` 字符串。
 - 未确认的字段不补，不写兜底值，不发明扩展字段。
 - 输出参数名是变量名字符串，不是对象。
+- 无 `else` 时，不要为了凑结构生成 `ElseSteps: []`。
+- 动作进入复杂阶段后，主流程应更像“调度表”，不要把所有细节都平铺在顶层 `Steps`。
 
 ## 动作级元数据规则
 
@@ -174,6 +203,13 @@ C. 写入云状态，在多设备之间共享
   - `references/example_docs/流程与结构最小样例.md`
   - `references/example_docs/变量与表达式最小样例.md`
   - `references/example_docs/状态存取与脚本最小样例.md`
+- 若需求涉及多字段配置、设置入口、状态持久化、停止返回，优先再读：
+  - `references/step_docs/多字段表单.md`
+  - `references/step_docs/状态存取.md`
+  - `references/step_docs/停止(return).md`
+  - `references/step_docs/运行或停止动作.md`
+  - `references/example_docs/多字段表单_动态词典配置样例.md`
+  - `references/example_docs/右键菜单设置入口样例.md`
 - 文档通常已经给出：
   - 模块键
   - 最小 JSON
@@ -220,6 +256,8 @@ C. 写入云状态，在多设备之间共享
 - `references/example_docs/流程与结构最小样例.md`
 - `references/example_docs/变量与表达式最小样例.md`
 - `references/example_docs/状态存取与脚本最小样例.md`
+- `references/example_docs/多字段表单_动态词典配置样例.md`
+- `references/example_docs/右键菜单设置入口样例.md`
 
 ## 注入规则
 
@@ -254,21 +292,37 @@ python .codex\skills\qk-action-creator\scripts\run_quicker_inject.py "JSON文件
   - 用 `subprocess.Popen(..., stdout=PIPE, stderr=PIPE, shell=False)` 调用 `QuickerStarter.exe`
   - 输出解码后的控制台返回文本
   - 以进程返回码作为脚本退出码
-- 该脚本本身只负责把 JSON 文件路径传给注入器。
+- 该脚本支持两种模式：
+  - 默认模式：把 JSON 文件路径传给注入器，执行“本地文件 -> 目标动作”。
+  - `--sync-only`：把 `同步+JSON 文件路径` 传给注入器，执行“目标动作 -> 本地文件”。
 - 底层仍然调用：
 
 ```bat
 cmd.exe /c 'C:\Program Files\Quicker\QuickerStarter.exe' -c runaction:注入器动作ID?'JSON文件路径'
 ```
 
+- 同步模式底层等价于：
+
+```bat
+cmd.exe /c 'C:\Program Files\Quicker\QuickerStarter.exe' -c runaction:注入器动作ID?'同步D:\path\action.json'
+```
+
 - `-c` 表示从控制台等待返回结果，默认最长 20 秒。
 - 成功返回通常是 `ok`。
+- 同步成功返回通常是 `sync ok`。
 - 失败返回通常是注入动作内部输出的错误文本。
 - 如果脚本标准输出为空，不能直接判成功，需要继续结合退出码和目标动作实际状态判断。
 
 ## 修改已有 JSON
 
-- 先读取原 JSON。
+- 第一步不是直接读本地文件，而是先执行：
+
+```bat
+python .codex\skills\qk-action-creator\scripts\run_quicker_inject.py --sync-only "JSON文件路径"
+```
+
+- 只有同步返回 `sync ok` 后，才继续读取该本地 JSON。
+- 同步失败时，先处理同步错误，不要基于旧文件继续修改。
 - 仅修改与当前需求直接相关的步骤、参数、变量或输出。
 - 不顺手改命名、不重排数组、不重写整份结构，除非原文件明显无效且修复必需。
 
@@ -288,5 +342,6 @@ cmd.exe /c 'C:\Program Files\Quicker\QuickerStarter.exe' -c runaction:注入器�
 
 - 生成 JSON 时，优先输出到用户当前工作区。
 - 执行注入前，确认目标 JSON 文件路径明确可用。
-- 若当前需求是“新建”或“修改”动作 JSON，完成 JSON 后默认继续执行注入，不额外等待用户再次确认。
+- 若当前需求是“修改”动作 JSON，必须先同步，再修改，再注入。
+- 若当前需求是“新建”动作 JSON，完成 JSON 后默认继续执行注入，不额外等待用户再次确认。
 - 注入失败时，先依据错误调整 JSON 或命令，再重试；不要无依据反复重试。

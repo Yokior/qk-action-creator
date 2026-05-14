@@ -21,17 +21,25 @@ cmd.exe /c 'C:\Program Files\Quicker\QuickerStarter.exe' -c runaction:c2b4ebf9-1
 - `"json文件路径"`
   - 当前约定这里传入的是 JSON 文件路径，不直接传 JSON 文本。
 
-4. 动作内配套约定
+4. 同步模式约定
+- 若传入值以 `同步` 开头，例如：
+  - `同步D:\Downloads\codex_test\quicker\猜拳游戏.json`
+- 注入器不再读取本地 JSON 写入动作。
+- 而是读取 `actionId` 对应目标动作当前 `Data`，反序列化为 `XAction`，再把完整流程定义按 UTF-8 写回到对应文件。
+- 这个模式只用于“修改已有动作前先拉取最新状态”。
+
+5. 动作内配套约定
 - `actionId`
   - 目标被改写动作的 ID。（由用户提前手动设置，未设置会报错 targetActionId 为空）
 - `quicker_in_param`
   - JSON 文件路径。（只需要关注这个）
 
-5. 返回结果
+6. 返回结果
 - 成功时返回：`ok`
+- 同步成功时返回：`sync ok`
 - 失败时返回：运行 C# 脚本中的错误文本
 
-6. 在当前环境里获取返回值的推荐方式
+7. 在当前环境里获取返回值的推荐方式
 - 优先使用技能目录下的 `scripts/run_quicker_inject.py`
 - 原因：
   - `QuickerStarter.exe -c` 的返回值在不同控制台宿主里表现不完全一致
@@ -60,3 +68,4 @@ out, err = proc.communicate()
   - 如需读取错误文本，同时传 `stderr=PIPE`
   - `runaction:动作标识?参数` 这一整段应作为单独一个参数传入
   - 不要再手动给 JSON 路径额外包一层双引号，否则 Quicker 会把引号视为路径内容
+  - 若要同步，参数应为 `同步D:\path\action.json`

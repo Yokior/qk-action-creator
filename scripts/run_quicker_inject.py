@@ -6,6 +6,7 @@ from pathlib import Path
 
 
 DEFAULT_QUICKER_STARTER = Path(r"C:\Program Files\Quicker\QuickerStarter.exe")
+SYNC_PREFIX = "同步"
 SKILL_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = SKILL_DIR / "config.json"
 
@@ -32,11 +33,11 @@ def load_injector_action_id(config_path: Path) -> str:
     return injector_action_id
 
 
-def build_command(quicker_starter: Path, injector_action_id: str, json_path: Path) -> list[str]:
+def build_command(quicker_starter: Path, injector_action_id: str, payload: str) -> list[str]:
     return [
         str(quicker_starter),
         "-c",
-        f"runaction:{injector_action_id}?{json_path}",
+        f"runaction:{injector_action_id}?{payload}",
     ]
 
 
@@ -45,6 +46,12 @@ def parse_args() -> argparse.Namespace:
         description="调用 QuickerStarter 执行注入器动作，并获取控制台返回值。"
     )
     parser.add_argument("json_path", help="要注入的动作 JSON 文件路径")
+    parser.add_argument(
+        "--sync-only",
+        dest="sync_only",
+        action="store_true",
+        help="只执行同步，把目标动作最新定义写回到本地 JSON 文件，不执行注入",
+    )
     parser.add_argument(
         "--injector-id",
         dest="injector_id",
@@ -76,7 +83,7 @@ def main() -> int:
     args = parse_args()
 
     json_path = Path(args.json_path).resolve()
-    if not json_path.exists():
+    if not args.sync_only and not json_path.exists():
         print(f"JSON 文件不存在：{json_path}", file=sys.stderr)
         return 2
 
@@ -91,7 +98,11 @@ def main() -> int:
         print(str(ex), file=sys.stderr)
         return 2
 
-    cmd = build_command(quicker_starter, injector_action_id, json_path)
+    payload = str(json_path)
+    if args.sync_only:
+        payload = SYNC_PREFIX + payload
+
+    cmd = build_command(quicker_starter, injector_action_id, payload)
 
     try:
         proc = subprocess.Popen(
