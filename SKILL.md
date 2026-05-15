@@ -95,9 +95,9 @@ C. 写入云状态，在多设备之间共享
   - 视情况给 `sys:notify`
   - 紧接 `sys:stop`
   - 不继续执行主功能
-- 多字段表单若只是固定少量变量，优先 `operation=variables` 或 `dict`。
-- 多字段表单若字段结构依赖词典、显示条件、动态选项或分组复用，优先 `operation=dict_dynamic`。
-- `dict_dynamic` 离线生成时，默认优先写 `dynamicFormForDictDef` 的 JSON `Fields` 结构；只有在当前文档已明确覆盖相关对象模型时，才使用返回 `FormField` 列表的表达式写法。
+- 多字段表单若字段就是动作已有变量，优先 `operation=variables`。
+- 多字段表单若需要编辑一个词典，且字段结构在生成时已经确定，优先 `operation=dict`；表单定义写入 `formForDictDef.Value`，格式为 `{"Fields":[...]}`。
+- 只有字段结构需要运行时动态生成，或普通 `dict` 无法在 Quicker 动作编辑器中正确呈现时，才使用 `operation=dict_dynamic`；此时表单定义写入 `dynamicFormForDictDef.Value`。
 - 主流程负责编排，重复逻辑、阶段逻辑、分支大块逻辑优先拆到步骤组或子程序。
 - 同一段逻辑如果会被调用两次及以上，优先抽成子程序。
 - 同一阶段里只是为了可读性分块、批量折叠、整体启停，优先使用步骤组。
