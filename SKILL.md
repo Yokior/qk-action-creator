@@ -81,8 +81,23 @@ C. 写入云状态，在多设备之间共享
   - `sys:stateStorage`
   - `sys:simpleIf` / `sys:if`
   - `sys:stop`
+- 需求如果是“维护一组配置项”，默认先判断是否应收束为词典；不要先把配置散落成很多互不关联的变量。
+- 需求如果是“多项结果”“批量处理”“遍历一组值”，默认先判断是否应使用列表；不要先把多项值硬拼成文本再反复拆分。
+- 需求如果是“根据进程、网址、选中文本、剪贴板内容等上下文命中规则后再执行”，默认按规则驱动型动作处理：
+  - 先获取上下文
+  - 再设计规则列表
+  - 再遍历并命中分支
+  - 不要一开始把所有条件平铺成连续 `if` 链
+- 需求如果是“同一主题下多个模式”，默认按单功能多模式动作处理：
+  - 主流程统一获取输入
+  - 主流程统一分发模式
+  - 各模式下沉到子程序
+  - 公共收尾统一处理
 - 需求如果是“步骤里弹出菜单”，优先用 `sys:showmenu` 或相关步骤能力。
+- 需求如果核心是“设置参数”“填写结构化数据”，默认优先 `sys:form`。
 - 需求如果是 `sys:custompanel`，默认优先用 `operationData` 的 JSON 形式描述操作项，不默认使用文本简写。
+- 需求如果核心是“提供一组可点击操作项”，默认优先 `sys:custompanel`。
+- 需求如果包含“预览、拖拽、复杂布局、独立窗口感、强交互”，才升级到 `sys:customwindow`；不要把普通设置或普通操作集合直接做成 `sys:customwindow`。
 - 只有当 `defaultOperation` 的具体写法已经被本 skill 文档明确覆盖时，才允许使用 `"[图标]标题|data"` 这类简写格式。
 - 需求如果是“动作本身右键菜单”，先判定这是 `ActionItem` 元数据，不是 `XAction` 步骤。
 - 用户如果要新做动作右键菜单，必须先提示用户在 Quicker 里手工创建右键菜单，再根据用户已创建的右键菜单继续后续开发。
@@ -98,15 +113,26 @@ C. 写入云状态，在多设备之间共享
 - 多字段表单若字段就是动作已有变量，优先 `operation=variables`。
 - 多字段表单若需要编辑一个词典，且字段结构在生成时已经确定，优先 `operation=dict`；表单定义写入 `formForDictDef.Value`，格式为 `{"Fields":[...]}`。
 - 只有字段结构需要运行时动态生成，或普通 `dict` 无法在 Quicker 动作编辑器中正确呈现时，才使用 `operation=dict_dynamic`；此时表单定义写入 `dynamicFormForDictDef.Value`。
+- 仅用于当前一次运行的中间值，优先普通变量；不要先落状态。
+- 固定动作变量且希望记住上次值时，可以考虑 `SaveState`；但普通长期配置默认仍优先 `sys:stateStorage`。
+- 需要跨设备、跨账号共享时，才升级到 `sys:clouddata`；不要把本机长期配置默认放进云状态。
 - 主流程负责编排，重复逻辑、阶段逻辑、分支大块逻辑优先拆到步骤组或子程序。
 - 同一段逻辑如果会被调用两次及以上，优先抽成子程序。
 - 同一阶段里只是为了可读性分块、批量折叠、整体启停，优先使用步骤组。
+- 单个分支或单个阶段过长时，先判断是否应拆子程序，而不是继续向主流程平铺步骤。
 - 流程控制优先使用卫语句或提前返回，减少多级嵌套。
 - 仅有 `if` 时优先 `sys:simpleIf`；同时存在 `if` 和 `else` 时才使用 `sys:if`。
 - 不要生成空的 `ElseSteps`。
+- 已有列表且需要逐项处理时，优先 `sys:each`；已知重复次数时，优先 `sys:repeat`。
+- 当前项不满足条件且应继续下一项时，优先 `sys:continue`，不要继续增加多级嵌套。
+- 命中目标后后续遍历无意义时，优先 `sys:break`。
+- 循环体过长时，优先把循环内核心处理逻辑下沉到子程序。
 - 对复杂动作，关键业务阶段优先加 `sys:comment` 注释模块；不要机械地给每一步都单独加注释。
+- 配置保存成功后，默认优先给一次 `sys:notify`。
+- 批处理结束、关键失败、需要用户继续下一步时，默认优先判断是否应给 `sys:notify`。
 - 只有涉及 Quicker 内部服务、复杂对象构造、现成模块明显缺失、表达式难以维护时，才用 `sys:csscript`。
 - 决定使用 `sys:csscript` 时，必须先能说明“为什么内置模块 + 表达式/插值不适合”。
+- 需求涉及文件处理、剪贴板处理、浏览器联动时，优先先画出“输入 -> 判断/转换 -> 输出”的跨模块链路，再决定每一步的具体模块；不要先写一整块脚本。
 - 对模块行为、参数格式、控制参数可见性、枚举取值存在疑点时，先查当前文档中的帮助 URL；官方文档未明确时再询问用户。
 
 ## 生成规则
@@ -137,15 +163,36 @@ C. 写入云状态，在多设备之间共享
   - 判断入口参数
   - 设置分支保存配置并停止
   - 普通分支继续执行主功能
+- 规则驱动型动作默认优先采用以下主结构：
+  - 获取上下文
+  - 读取规则集
+  - 遍历规则
+  - 逐项命中判断
+  - 命中后执行或生成操作项
+- 单功能多模式动作默认优先采用以下主结构：
+  - 获取公共输入
+  - 判断模式来源
+  - 分发到模式子程序
+  - 执行公共收尾
 - 若步骤文档之间存在冲突，优先采用本 skill 中已经人工校正过的样例与规则，不沿用明显失真的自动转存结果。
 - 动作一旦出现多个明显阶段，优先用 `sys:group` 分段，并写清楚组的业务语义。
 - 动作一旦出现可复用流程，优先在顶层 `SubPrograms` 中定义子程序，再在主流程用 `sys:subprogram` 调用。
+- 规则集、菜单项集合、批处理项集合，一旦结构明确，优先先组织为列表或词典，再交给后续步骤消费。
+- 动态菜单、操作集合、自定义操作窗的数据，默认优先先组织结构化项，再一次性交给界面步骤；不要边遍历边拼最终大文本，除非文档已明确简写格式且更稳定。
 - 子程序若需图标，可写其 `Icon` 字段；图标值优先用 `fa:` 字符串。
 - 步骤内按钮、菜单项、操作项若支持图标文本，也优先用 `fa:` 字符串。
 - 未确认的字段不补，不写兜底值，不发明扩展字段。
 - 输出参数名是变量名字符串，不是对象。
 - 无 `else` 时，不要为了凑结构生成 `ElseSteps: []`。
 - 动作进入复杂阶段后，主流程应更像“调度表”，不要把所有细节都平铺在顶层 `Steps`。
+- 文件处理链路默认优先显式保留：
+  - 输入路径变量
+  - 中间文本或对象变量
+  - 输出路径变量
+- 剪贴板处理链路默认优先显式保留：
+  - 读取结果变量
+  - 判断结果变量
+  - 写回结果变量
 
 ## 动作级元数据规则
 
@@ -204,13 +251,36 @@ C. 写入云状态，在多设备之间共享
   - `references/example_docs/流程与结构最小样例.md`
   - `references/example_docs/变量与表达式最小样例.md`
   - `references/example_docs/状态存取与脚本最小样例.md`
+- 若需求涉及复杂结构拆分、主流程编排、子程序与步骤组取舍，优先再读：
+  - `references/basic_docs/动作结构组织.md`
+  - `references/basic_docs/步骤组与子程序拆分决策.md`
+- 若需求涉及列表、词典、规则集、菜单项数据结构，优先再读：
+  - `references/basic_docs/列表与词典驱动动作设计.md`
+  - `references/basic_docs/规则驱动型动作模板.md`
+  - `references/example_docs/列表词典驱动菜单生成样例.md`
 - 若需求涉及多字段配置、设置入口、状态持久化、停止返回，优先再读：
   - `references/step_docs/多字段表单.md`
   - `references/step_docs/状态存取.md`
   - `references/step_docs/停止(return).md`
   - `references/step_docs/运行或停止动作.md`
   - `references/example_docs/多字段表单_动态词典配置样例.md`
+  - `references/example_docs/配置型动作标准骨架.md`
   - `references/example_docs/右键菜单设置入口样例.md`
+- 若需求涉及界面形态选型，优先再读：
+  - `references/basic_docs/界面能力选型规则.md`
+  - `references/step_docs/自定义操作窗.md`
+  - `references/step_docs/自定义窗口.md`
+- 若需求涉及循环、批处理、规则遍历，优先再读：
+  - `references/example_docs/循环控制成熟写法.md`
+- 若需求涉及状态层级、跨设备同步、本机持久化边界，优先再读：
+  - `references/basic_docs/状态分层矩阵.md`
+- 若需求涉及单功能多模式分发，优先再读：
+  - `references/basic_docs/单功能多模式动作模板.md`
+- 若需求涉及通知节点、主流程注释阶段、保存后反馈，优先再读：
+  - `references/basic_docs/通知与注释使用规范.md`
+- 若需求涉及浏览器联动、文件链路、剪贴板链路，优先再读：
+  - `references/example_docs/浏览器联动链路样例.md`
+  - `references/example_docs/文件与剪贴板处理链路样例.md`
 - 文档通常已经给出：
   - 模块键
   - 最小 JSON
@@ -249,6 +319,13 @@ C. 写入云状态，在多设备之间共享
 - `references/basic_docs/表格变量类型.md`
 - `references/basic_docs/顶层Variables结构.md`
 - `references/basic_docs/动作结构组织.md`
+- `references/basic_docs/步骤组与子程序拆分决策.md`
+- `references/basic_docs/列表与词典驱动动作设计.md`
+- `references/basic_docs/界面能力选型规则.md`
+- `references/basic_docs/状态分层矩阵.md`
+- `references/basic_docs/通知与注释使用规范.md`
+- `references/basic_docs/单功能多模式动作模板.md`
+- `references/basic_docs/规则驱动型动作模板.md`
 - `references/basic_docs/动作右键菜单与动作元数据.md`
 - `references/basic_docs/Quicker内置矢量图.md`
 
@@ -258,6 +335,11 @@ C. 写入云状态，在多设备之间共享
 - `references/example_docs/变量与表达式最小样例.md`
 - `references/example_docs/状态存取与脚本最小样例.md`
 - `references/example_docs/多字段表单_动态词典配置样例.md`
+- `references/example_docs/配置型动作标准骨架.md`
+- `references/example_docs/循环控制成熟写法.md`
+- `references/example_docs/文件与剪贴板处理链路样例.md`
+- `references/example_docs/浏览器联动链路样例.md`
+- `references/example_docs/列表词典驱动菜单生成样例.md`
 - `references/example_docs/右键菜单设置入口样例.md`
 
 ## 注入规则
